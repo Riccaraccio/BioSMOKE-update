@@ -126,6 +126,7 @@ int main(int argc, char **argv)
             if (dictionaries(main_dictionary_name_).CheckOption("@TGA"), true)
                 dictionaries(main_dictionary_name_).ReadDictionary("@TGA", name_of_solid_status_subdictionary);
 
+            // Unsure about the scope of these variables
             std::string analysis;
             double heating_rate, final_time;
             std::vector<std::string> output_species;
@@ -146,6 +147,7 @@ int main(int argc, char **argv)
                 dictionaries(main_dictionary_name_)
                     .ReadDictionary("@Total_Analysis", name_of_solid_status_subdictionary);
 
+            // Unsure about the scope of these variables
             std::string analysis;
             bool energy_balance, volume_loss;
             double final_time, epsi, initial_radius, Da_number, hext, lambda_solid;
@@ -158,7 +160,8 @@ int main(int argc, char **argv)
         }
         else
         {
-            std::cout << "Unknown";
+            std::cout << "Unknown simulation type: " << analysis_type << std::endl;
+            OpenSMOKE::FatalErrorMessage("Avaiable options: TG_Analysis or Total_Analysis");
         }
     }
 
