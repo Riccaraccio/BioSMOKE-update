@@ -60,11 +60,11 @@ Dictionary Total_Analysis
 
 	@ConstantVolume			true;
 
-	@Porosity               0.4;            
+	@Porosity               0.4;
 	
 	@Nlayer	                10 ;
 
-	@Radius                 12.7 mm;
+	@InitialRadius			12.7 mm;
 	
 	@TotalSimulationTime	1200 s;
 
