@@ -1,23 +1,63 @@
+/* ----------------------------------------------------------------------------------- *\
+|                                                                                       |
+|                  ____  _      ____  __  __  ___  _  _______                           |
+|                 | __ )(_) ___/ ___||  \/  |/ _ \| |/ / ____|_ __  _ __                |
+|                 |  _ \| |/ _ \___ \| |\/| | | | | ' /|  _| | '_ \| '_ \               |
+|                 | |_) | | (_) |__) | |  | | |_| | . \| |___| |_) | |_) |              |
+|                 |____/|_|\___/____/|_|  |_|\___/|_|\_\_____| .__/| .__/               |
+|                                                            |_|   |_|                  |
+|                                                                                       |
+| ------------------------------------------------------------------------------------- |
+|  See license and copyright at the end of this file.                                   |
+| ------------------------------------------------------------------------------------- |
+|                                                                                       |
+|           Authors: Riccardo Caraccio <riccardo.caraccio@polimi.it>                    |
+|                    Timoteo Dinelli   <timoteo.dinelli@polimi.it>                      |
+|                    Andrea Locaspi    <andrea.locaspi@polimi.it>                       |
+|                                                                                       |
+|               CRECK Modeling Lab <https://www.creckmodeling.polimi.it>                |
+|               Department of Chemistry, Materials and Chemical Engineering             |
+|               Politecnico di Milano, P.zza Leonardo da Vinci 32, 20133 Milano         |
+|                                                                                       |
+\* ----------------------------------------------------------------------------------- */
 #include <memory>
 #include <string>
 
-// OpenSMOKE
+// ==================================================
+// OpenSMOKEpp Headers
+// ==================================================
 #include <OpenSMOKEpp>
+// ==================================================
+// Maps
 #include <maps/Maps_CHEMKIN>
 #include <maps/ThermodynamicsMap_Solid_CHEMKIN.h>
+// ==================================================
+// Dictionaries
+#include <dictionary/OpenSMOKE_DictionaryManager.h>
+#include <dictionary/OpenSMOKE_DictionaryGrammar.h>
+#include <dictionary/OpenSMOKE_DictionaryKeyWord.h>
+// ==================================================
+// Ideal Reactors utilities
 #include <idealreactors/utilities/Utilities>
-#include <idealreactors/plugflow/PlugFlowReactor_Profile.h> //maybe to be changed
+#include <idealreactors/plugflow/PlugFlowReactor_Profile.h>
 
-// Internal headers
+// ==================================================
+// Internal Headers
+// ==================================================
 #include "grammar/Grammar_BioSMOKE.h"
 #include "grammar/Grammar_SolidStatus.h"
 #include "grammar/Grammar_TGA_Biomass.h"
 #include "grammar/Grammar_TotalSimulation_Biomass.h"
 
+enum class Solvers_Type
+{
+    THERMOGRAVIMETRIC_ANALYSIS,
+    ONE_DIMENSIONAL_SPHERICAL_PARTICLE,
+};
 
 int main(int argc, char **argv)
 {
-    OpenSMOKE::OpenSMOKE_logo("BioSMOKEpp", "Riccardo Caraccio (riccardo.caraccio@polimi.it)");
+    OpenSMOKE::OpenSMOKE_logo("BioSMOKEpp", "");
 
     std::string input_file_name_ = "input.dic";
     std::string main_dictionary_name_ = "BioSMOKE";
@@ -30,8 +70,7 @@ int main(int argc, char **argv)
                                                                  "number of threads (default 1")(
             "input", po::value<std::string>(),
             "name of the file containing the main dictionary (default \"input.dic\")")(
-            "dictionary", po::value<std::string>(),
-            "name of the main dictionary to be used (default \"BioSMOKE\")");
+            "dictionary", po::value<std::string>(), "name of the main dictionary to be used (default \"BioSMOKE\")");
 
         po::variables_map vm;
         try
@@ -46,10 +85,14 @@ int main(int argc, char **argv)
             }
 
             if (vm.count("input"))
+            {
                 input_file_name_ = vm["input"].as<std::string>();
+            }
 
             if (vm.count("dictionary"))
+            {
                 main_dictionary_name_ = vm["dictionary"].as<std::string>();
+            }
 
             po::notify(vm); // throws on error, so do after help in case  there are any problems
         }
@@ -70,7 +113,9 @@ int main(int argc, char **argv)
     // Read kinetic model
     boost::filesystem::path kinetic_folder;
     if (dictionaries(main_dictionary_name_).CheckOption("@KineticsFolder") == true)
+    {
         dictionaries(main_dictionary_name_).ReadPath("@KineticsFolder", kinetic_folder);
+    }
 
     std::shared_ptr<OpenSMOKE::KineticsMap_CHEMKIN> kinetics_map_XML;
     std::shared_ptr<OpenSMOKE::ThermodynamicsMap_CHEMKIN> thermodynamicsMapXML;
@@ -81,7 +126,9 @@ int main(int argc, char **argv)
     // Read the kinetic scheme in XML format
     {
         if (!boost::filesystem::exists(kinetic_folder / "kinetics.xml"))
+        {
             OpenSMOKE::FatalErrorMessage("The kinetic mechanism does not exist! Please check");
+        }
 
         boost::property_tree::ptree ptree;
         boost::property_tree::read_xml((kinetic_folder / "kinetics.xml").string(), ptree);
@@ -124,16 +171,18 @@ int main(int argc, char **argv)
         {
             std::string name_of_solid_status_subdictionary;
             if (dictionaries(main_dictionary_name_).CheckOption("@TGA"), true)
+            {
                 dictionaries(main_dictionary_name_).ReadDictionary("@TGA", name_of_solid_status_subdictionary);
+            }
 
             // Unsure about the scope of these variables
             std::string analysis;
             double heating_rate, final_time;
             std::vector<std::string> output_species;
 
-            BioSMOKE::Get_TGAanalysisFromDictionary(dictionaries(name_of_solid_status_subdictionary), analysis, heating_rate,
-                                          final_time, output_species);
-            
+            BioSMOKE::Get_TGAanalysisFromDictionary(dictionaries(name_of_solid_status_subdictionary), analysis,
+                                                    heating_rate, final_time, output_species);
+
             // TODO
             // if (output_species_[0] == "all")
             // {
@@ -144,8 +193,10 @@ int main(int argc, char **argv)
         {
             std::string name_of_solid_status_subdictionary;
             if (dictionaries(main_dictionary_name_).CheckOption("@Total_Analysis") == true)
+            {
                 dictionaries(main_dictionary_name_)
                     .ReadDictionary("@Total_Analysis", name_of_solid_status_subdictionary);
+            }
 
             // Unsure about the scope of these variables
             std::string analysis;
@@ -154,9 +205,9 @@ int main(int argc, char **argv)
             int number_of_layers;
             std::vector<std::string> output_species;
 
-            BioSMOKE::Get_TotalSimulation_analysisFromDictionary(dictionaries(name_of_solid_status_subdictionary), analysis,
-                                                       energy_balance, volume_loss, final_time, epsi, number_of_layers,
-                                                       initial_radius, Da_number, hext, lambda_solid, output_species);
+            BioSMOKE::Get_TotalSimulation_analysisFromDictionary(
+                dictionaries(name_of_solid_status_subdictionary), analysis, energy_balance, volume_loss, final_time,
+                epsi, number_of_layers, initial_radius, Da_number, hext, lambda_solid, output_species);
         }
         else
         {
@@ -165,10 +216,10 @@ int main(int argc, char **argv)
         }
     }
 
-    //TODO check wheter to use utilities/profiles/FixedProfile.h
+    // TODO check wheter to use utilities/profiles/FixedProfile.h
     std::string name_of_profile_subdictionary;
     bool is_temperature_profile = false;
-    OpenSMOKE::PlugFlowReactor_Profile* temperature_profile; //not really clean
+    OpenSMOKE::PlugFlowReactor_Profile *temperature_profile; // not really clean
     if (dictionaries(main_dictionary_name_).CheckOption("@TemperatureProfile") == true)
     {
         dictionaries(main_dictionary_name_).ReadDictionary("@TemperatureProfile", name_of_profile_subdictionary);
@@ -187,11 +238,13 @@ int main(int argc, char **argv)
     {
         std::string name_of_gas_status_subdictionary;
         if (dictionaries(main_dictionary_name_).CheckOption("@InitialGasStatus") == true)
+        {
             dictionaries(main_dictionary_name_).ReadDictionary("@InitialGasStatus", name_of_gas_status_subdictionary);
+        }
 
         GetGasStatusFromDictionary(dictionaries(name_of_gas_status_subdictionary), *thermodynamicsMapXML, T_gas,
                                    P_Pa_gas, omega);
-        
+
         // TODO
         // if (output_species_[0] == "all")
         // {
@@ -204,14 +257,18 @@ int main(int argc, char **argv)
     {
         std::string name_of_solid_status_subdictionary;
         if (dictionaries(main_dictionary_name_).CheckOption("@InitialSolidStatus") == true)
+        {
             dictionaries(main_dictionary_name_)
                 .ReadDictionary("@InitialSolidStatus", name_of_solid_status_subdictionary);
+        }
 
         BioSMOKE::GetSolidStatusFromDictionary(dictionaries(name_of_solid_status_subdictionary),
                                                *thermodynamic_solid_map_XML, T_solid, P_solid, rho_solid, omega_solid);
 
         if (is_temperature_profile == true)
+        {
             T_solid = temperature_profile->Get(0.);
+        }
     }
 
     return 0;

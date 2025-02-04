@@ -1,9 +1,4 @@
-#ifndef OpenSMOKE_Grammar_TGA_analysis_H
-#define OpenSMOKE_Grammar_TGA_analysis_H
-
-#include <string>
-#include <dictionary/OpenSMOKE_Dictionary.h>
-#include <dictionary/OpenSMOKE_DictionaryGrammar.h>
+#pragma onn
 
 namespace BioSMOKE
 {
@@ -12,16 +7,22 @@ class Grammar_TGA_analysis : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
   protected:
     virtual void DefineRules()
     {
+        // clang-format off
+        AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeatingRate",
+                                                          OpenSMOKE::SINGLE_MEASURE,
+                                                          "Heat rates of particle (i.e. 1 °C/min)",
+                                                          false));
 
-        AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@HeatingRate", OpenSMOKE::SINGLE_MEASURE,
-                                                          "Heat rates of particle (i.e. 1 °C/min)", false));
+        AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TotalSimulationTime",
+                                                          OpenSMOKE::SINGLE_MEASURE,
+                                                          "Total time to simulate(i.e. 100 s)",
+                                                          true));
 
-        AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@TotalSimulationTime", OpenSMOKE::SINGLE_MEASURE,
-                                                          "Total time to simulate(i.e. 100 s)", true));
-
-        // AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord(
-        //     "@OutputSpecies", OpenSMOKE::VECTOR_STRING, "List of species which will be written on ASCII file",
-        //     false));
+        // AddKeyWord(OpenSMOKE::OpenSMOKE_DictionaryKeyWord("@OutputSpecies",
+        //                                                   OpenSMOKE::VECTOR_STRING,
+        //                                                   "List of species which will be written on ASCII file",
+        //                                                   false));
+        // clang-format on
     }
 };
 
@@ -35,42 +36,38 @@ inline void Get_TGAanalysisFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary &dicti
     analysis = "TGA";
 
     // Heating rate
+    if (dictionary.CheckOption("@HeatingRate") == true)
     {
-        if (dictionary.CheckOption("@HeatingRate") == true)
-        {
-            double value;
-            std::string units;
-            dictionary.ReadMeasure("@HeatingRate", value, units);
+        double value;
+        std::string units;
+        dictionary.ReadMeasure("@HeatingRate", value, units);
 
-            if (units == "K/s")
-                heating_rate = value;
-            else if (units == "K/min")
-                heating_rate = value / 60.;
-            else if (units == "K/h")
-                heating_rate = value / 3600.;
-            else
-                OpenSMOKE::FatalErrorMessage("Unknown heating rate unit of measurement");
-        }
+        if (units == "K/s")
+            heating_rate = value;
+        else if (units == "K/min")
+            heating_rate = value / 60.;
+        else if (units == "K/h")
+            heating_rate = value / 3600.;
+        else
+            OpenSMOKE::FatalErrorMessage("Unknown heating rate unit of measurement");
     }
 
     // Simulation time
+    if (dictionary.CheckOption("@TotalSimulationTime") == true)
     {
-        if (dictionary.CheckOption("@TotalSimulationTime") == true)
-        {
-            double value;
-            std::string units;
-            dictionary.ReadMeasure("@TotalSimulationTime", value, units);
-            if (units == "s")
-                final_time = value;
-            else if (units == "ms")
-                final_time = value / 1000.;
-            else if (units == "min")
-                final_time = value * 60.;
-            else if (units == "h")
-                final_time = value * 3600.;
-            else
-                OpenSMOKE::FatalErrorMessage("Unknown time unit of measurement");
-        }
+        double value;
+        std::string units;
+        dictionary.ReadMeasure("@TotalSimulationTime", value, units);
+        if (units == "s")
+            final_time = value;
+        else if (units == "ms")
+            final_time = value / 1000.;
+        else if (units == "min")
+            final_time = value * 60.;
+        else if (units == "h")
+            final_time = value * 3600.;
+        else
+            OpenSMOKE::FatalErrorMessage("Unknown time unit of measurement");
     }
 }
 
