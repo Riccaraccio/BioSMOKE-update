@@ -71,6 +71,8 @@ find_package(OpenSMOKEpp REQUIRED)
 # ----------------------------------------------------------------------------
 set(LINEAR_ALGEBRA_INCLUDE)
 set(LINEAR_ALGEBRA_LIB)
+set(OPENBLAS_VALUE 0)
+set(MKL_VALUE 0)
 
 # ----------------------------------------------------------------------------
 # MKL: TODO: web link

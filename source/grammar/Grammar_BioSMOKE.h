@@ -1,3 +1,5 @@
+#pragma once
+
 namespace BioSMOKE
 {
 class Grammar_BioSMOKE : public OpenSMOKE::OpenSMOKE_DictionaryGrammar

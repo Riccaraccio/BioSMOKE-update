@@ -239,4 +239,3 @@ void GetSolidStatusFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary &dictionary,
     }
 }
 } // namespace BioSMOKE
-#endif /* OpenSMOKE_Grammar_SolidStatus_Options_H */

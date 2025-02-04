@@ -1,4 +1,4 @@
-#pragma onn
+#pragma once
 
 namespace BioSMOKE
 {
@@ -72,5 +72,3 @@ inline void Get_TGAanalysisFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary &dicti
 }
 
 } // namespace BioSMOKE
-
-#endif /* OpenSMOKE_Grammar_TGA_analysis_H */

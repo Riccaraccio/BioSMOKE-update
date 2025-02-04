@@ -171,5 +171,3 @@ inline void Get_TotalSimulation_analysisFromDictionary(OpenSMOKE::OpenSMOKE_Dict
     }
 }
 } // namespace BioSMOKE
-
-#endif /* OpenSMOKE_Grammar_TotalSimulation_analysis_H */
