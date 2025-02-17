@@ -26,14 +26,11 @@ class Grammar_TGA_analysis : public OpenSMOKE::OpenSMOKE_DictionaryGrammar
     }
 };
 
-inline void Get_TGAanalysisFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary &dictionary, std::string &analysis,
-                                          double &heating_rate, double &final_time,
-                                          std::vector<std::string> &output_species)
+inline void Get_TGAanalysisFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary &dictionary, double &heating_rate,
+                                          double &final_time, std::vector<std::string> &output_species)
 {
     Grammar_TGA_analysis grammar_TGA_analysis;
     dictionary.SetGrammar(grammar_TGA_analysis);
-
-    analysis = "TGA";
 
     // Heating rate
     if (dictionary.CheckOption("@HeatingRate") == true)

@@ -57,20 +57,18 @@ class Grammar_TotalSimulation_analysis : public OpenSMOKE::OpenSMOKE_DictionaryG
 };
 
 inline void Get_TotalSimulation_analysisFromDictionary(OpenSMOKE::OpenSMOKE_Dictionary &dictionary,
-                                                       std::string &analysis, bool &energy_balance, bool &volume_loss,
-                                                       double &final_time, double &porosity, int &number_of_layers,
-                                                       double &initial_radius, double &Da_number, double &hext,
-                                                       double &lambda_solid, std::vector<std::string> &output_species)
+                                                       bool &energy_balance, bool &volume_loss, double &final_time,
+                                                       double &porosity, int &number_of_layers, double &initial_radius,
+                                                       double &Da_number, double &hext, double &lambda_solid,
+                                                       std::vector<std::string> &output_species)
 {
     Grammar_TotalSimulation_analysis grammar_TotalSimulation_analysis;
     dictionary.SetGrammar(grammar_TotalSimulation_analysis);
 
-    analysis = "Total_Analysis";
-
     // Type of simulation
-    std::string value;
     if (dictionary.CheckOption("@Type") == true)
     {
+        std::string value;
         dictionary.ReadString("@Type", value);
         if (value == "Isothermal")
             energy_balance = false;
@@ -100,9 +98,9 @@ inline void Get_TotalSimulation_analysisFromDictionary(OpenSMOKE::OpenSMOKE_Dict
     }
 
     // Volume
-    std::string value;
     if (dictionary.CheckOption("@ConstantVolume") == true)
     {
+        std::string value;
         dictionary.ReadString("@ConstantVolume", value);
         if (value == "true")
             volume_loss = false;

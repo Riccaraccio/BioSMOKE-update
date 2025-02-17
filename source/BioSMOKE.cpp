@@ -49,12 +49,6 @@
 #include "grammar/Grammar_TGA_Biomass.h"
 #include "grammar/Grammar_TotalSimulation_Biomass.h"
 
-enum class Solvers_Type
-{
-    THERMOGRAVIMETRIC_ANALYSIS,
-    ONE_DIMENSIONAL_SPHERICAL_PARTICLE,
-};
-
 int main(int argc, char **argv)
 {
     OpenSMOKE::OpenSMOKE_logo("BioSMOKEpp", "");
@@ -104,9 +98,11 @@ int main(int argc, char **argv)
         }
     }
 
+    // Defines the grammar rules
+    BioSMOKE::Grammar_BioSMOKE grammar_biosmoke;
+
     // Define the dictionaries
     OpenSMOKE::OpenSMOKE_DictionaryManager dictionaries;
-    BioSMOKE::Grammar_BioSMOKE grammar_biosmoke;
     dictionaries.ReadDictionariesFromFile(input_file_name_);
     dictionaries(main_dictionary_name_).SetGrammar(grammar_biosmoke);
 
@@ -117,11 +113,11 @@ int main(int argc, char **argv)
         dictionaries(main_dictionary_name_).ReadPath("@KineticsFolder", kinetic_folder);
     }
 
-    std::shared_ptr<OpenSMOKE::KineticsMap_CHEMKIN> kinetics_map_XML;
+    std::shared_ptr<OpenSMOKE::KineticsMap_CHEMKIN> kineticsMapXML;
     std::shared_ptr<OpenSMOKE::ThermodynamicsMap_CHEMKIN> thermodynamicsMapXML;
     std::shared_ptr<OpenSMOKE::TransportPropertiesMap_CHEMKIN> transportMapXML;
-    std::shared_ptr<OpenSMOKE::ThermodynamicsMap_Solid_CHEMKIN> thermodynamic_solid_map_XML;
-    std::shared_ptr<OpenSMOKE::KineticsMap_Solid_CHEMKIN> kinetics_solid_map_XML;
+    std::shared_ptr<OpenSMOKE::ThermodynamicsMap_Solid_CHEMKIN> thermodynamicSolidMapXML;
+    std::shared_ptr<OpenSMOKE::KineticsMap_Solid_CHEMKIN> kineticsSolidMapXML;
 
     // Read the kinetic scheme in XML format
     {
@@ -135,17 +131,17 @@ int main(int argc, char **argv)
 
         double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
         thermodynamicsMapXML = std::make_shared<OpenSMOKE::ThermodynamicsMap_CHEMKIN>(ptree);
-        kinetics_map_XML = std::make_shared<OpenSMOKE::KineticsMap_CHEMKIN>(*thermodynamicsMapXML, ptree);
+        kineticsMapXML = std::make_shared<OpenSMOKE::KineticsMap_CHEMKIN>(*thermodynamicsMapXML, ptree);
         transportMapXML = std::make_shared<OpenSMOKE::TransportPropertiesMap_CHEMKIN>(ptree);
         double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
         std::cout << "Time to read Gas Phase XML file: " << tEnd - tStart << std::endl;
 
         // Read the solid-phase reactions
-        std::cout << "Reading the kinetic scheme (solid phase) in XML format" << std::endl;
+        std::cout << "Reading the kinetic scheme of the solid phase in XML format" << std::endl;
 
         if (!boost::filesystem::exists(kinetic_folder / "kinetics.solid.xml"))
         {
-            std::cout << "No reactions in the solid phase" << std::endl;
+            OpenSMOKE::FatalErrorMessage("The solid-phase kinetic mechanism does not exist! Please check");
         }
         else
         {
@@ -153,15 +149,25 @@ int main(int argc, char **argv)
             boost::property_tree::read_xml((kinetic_folder / "kinetics.solid.xml").string(), ptree);
 
             double tStart = OpenSMOKE::OpenSMOKEGetCpuTime();
-            thermodynamic_solid_map_XML = std::make_shared<OpenSMOKE::ThermodynamicsMap_Solid_CHEMKIN>(ptree);
-            kinetics_solid_map_XML =
-                std::make_shared<OpenSMOKE::KineticsMap_Solid_CHEMKIN>(*thermodynamic_solid_map_XML, ptree, 1);
+            thermodynamicSolidMapXML = std::make_shared<OpenSMOKE::ThermodynamicsMap_Solid_CHEMKIN>(ptree);
+            kineticsSolidMapXML =
+                std::make_shared<OpenSMOKE::KineticsMap_Solid_CHEMKIN>(*thermodynamicSolidMapXML, ptree, 1);
             double tEnd = OpenSMOKE::OpenSMOKEGetCpuTime();
             std::cout << "Time to read Solid Phase XML file: " << tEnd - tStart << std::endl;
         }
     }
 
     std::string analysis_type;
+    std::vector<std::string> output_species;
+
+    // TGA Analysis
+    double heating_rate, final_time;
+
+    // Total Analysis
+    bool energy_balance, volume_loss;
+    double porosity, initial_radius, Da_number, ext_heat_transf_coeff, lambda_solid;
+    int number_of_layers;
+
     if (dictionaries(main_dictionary_name_).CheckOption("@Type") == true)
     {
 
@@ -175,18 +181,13 @@ int main(int argc, char **argv)
                 dictionaries(main_dictionary_name_).ReadDictionary("@TGA", name_of_solid_status_subdictionary);
             }
 
-            // Unsure about the scope of these variables
-            std::string analysis;
-            double heating_rate, final_time;
-            std::vector<std::string> output_species;
-
-            BioSMOKE::Get_TGAanalysisFromDictionary(dictionaries(name_of_solid_status_subdictionary), analysis,
-                                                    heating_rate, final_time, output_species);
+            BioSMOKE::Get_TGAanalysisFromDictionary(dictionaries(name_of_solid_status_subdictionary), heating_rate,
+                                                    final_time, output_species);
 
             // TODO
             // if (output_species_[0] == "all")
             // {
-            //     output_species_ = kinetics_solid_map_XML->NamesOfSpecies();
+            //     output_species_ = kineticsSolidMapXML->NamesOfSpecies();
             // }
         }
         else if (analysis_type == "Total_Analysis")
@@ -198,16 +199,9 @@ int main(int argc, char **argv)
                     .ReadDictionary("@Total_Analysis", name_of_solid_status_subdictionary);
             }
 
-            // Unsure about the scope of these variables
-            std::string analysis;
-            bool energy_balance, volume_loss;
-            double final_time, epsi, initial_radius, Da_number, hext, lambda_solid;
-            int number_of_layers;
-            std::vector<std::string> output_species;
-
             BioSMOKE::Get_TotalSimulation_analysisFromDictionary(
-                dictionaries(name_of_solid_status_subdictionary), analysis, energy_balance, volume_loss, final_time,
-                epsi, number_of_layers, initial_radius, Da_number, hext, lambda_solid, output_species);
+                dictionaries(name_of_solid_status_subdictionary), energy_balance, volume_loss, final_time, porosity,
+                number_of_layers, initial_radius, Da_number, ext_heat_transf_coeff, lambda_solid, output_species);
         }
         else
         {
@@ -216,7 +210,6 @@ int main(int argc, char **argv)
         }
     }
 
-    // TODO check wheter to use utilities/profiles/FixedProfile.h
     std::string name_of_profile_subdictionary;
     bool is_temperature_profile = false;
     OpenSMOKE::PlugFlowReactor_Profile *temperature_profile; // not really clean
@@ -248,11 +241,11 @@ int main(int argc, char **argv)
         // TODO
         // if (output_species_[0] == "all")
         // {
-        //     output_species_ = kinetics_solid_map_XML->NamesOfSpecies();
+        //     output_species_ = kineticsSolidMapXML->NamesOfSpecies();
         // }
     }
 
-    double T_solid, P_solid, rho_solid;
+    double T_solid, P_Pa_solid, rho_solid;
     OpenSMOKE::OpenSMOKEVectorDouble omega_solid;
     {
         std::string name_of_solid_status_subdictionary;
@@ -263,7 +256,7 @@ int main(int argc, char **argv)
         }
 
         BioSMOKE::GetSolidStatusFromDictionary(dictionaries(name_of_solid_status_subdictionary),
-                                               *thermodynamic_solid_map_XML, T_solid, P_solid, rho_solid, omega_solid);
+                                               *thermodynamicSolidMapXML, T_solid, P_Pa_solid, rho_solid, omega_solid);
 
         if (is_temperature_profile == true)
         {
