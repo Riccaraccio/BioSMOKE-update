@@ -2,6 +2,7 @@
 
 #include <maps/Maps_CHEMKIN>
 #include <maps/ThermodynamicsMap_Solid_CHEMKIN.h>
+#include <math/external-ode-solvers/ODE_Parameters.h>
 
 namespace BioSMOKE
 {
@@ -31,13 +32,15 @@ class BaseSolver
      * @param ode_parameters parameters governing the solution of the stiff ODE system
      * @param biosmoke_options options governing the output
      */
-
-    BaseSolver(OpenSMOKE::ThermodynamicsMap_CHEMKIN &thermodynamicsMap, OpenSMOKE::KineticsMap_CHEMKIN &kineticsMap,
-               OpenSMOKE::TransportPropertiesMap_CHEMKIN &transportMap,
-               OpenSMOKE::ThermodynamicsMap_Solid_CHEMKIN &thermodynamicsSolidMap,
-               OpenSMOKE::KineticsMap_Solid_CHEMKIN &kineticsSolidMap, OpenSMOKE::ODE_Parameters &ode_parameters,
+    // clang-format off
+    BaseSolver( OpenSMOKE::ThermodynamicsMap_CHEMKIN &thermodynamicsMap, 
+                OpenSMOKE::KineticsMap_CHEMKIN &kineticsMap,
+                OpenSMOKE::TransportPropertiesMap_CHEMKIN &transportMap,
+                OpenSMOKE::ThermodynamicsMap_Solid_CHEMKIN &thermodynamicsSolidMap,
+                OpenSMOKE::KineticsMap_Solid_CHEMKIN &kineticsSolidMap, 
+                OpenSMOKE::ODE_Parameters &ode_parameters
                // OpenSMOKE::BioSMOKE_Options &biosmoke_options,
-    );
+    ); // clang-format on
 
     virtual ~BaseSolver() = 0;
 
@@ -54,15 +57,14 @@ class BaseSolver
      * @param y current solution
      * @param dy current unsteady terms
      */
-    virtual int Equations(const double t, const OpenSMOKE::OpenSMOKEVectorDouble &y,
-                          OpenSMOKE::OpenSMOKEVectorDouble &dy) = 0;
+    virtual int Equations(const double t, const std::vector<double> &y, std::vector<double> &dy) = 0;
 
     /**
      * @brief Writes the output (called at the end of each time step)
      * @param t current time [s]
      * @param y current solution
      */
-    virtual int Print(const double t, const OpenSMOKE::OpenSMOKEVectorDouble &y) = 0;
+    virtual int Print(const double t, const std::vector<double> &y) = 0;
 
     /**
      * @brief Returns the total number of equations
@@ -88,7 +90,7 @@ class BaseSolver
     double MW0_solid_;                 // Initial molecular weight of the solid phase [kg/kmol]
     double V0_solid_;                  // Initial volume of the solid phase [m3]
     std::vector<double> omega0_solid_; // Initial composition of the solid phase [mass fractions]
-    std::vector<double> x0_sold_;      // Initial composition of the solid phase [mole fractions]
+    std::vector<double> x0_solid_;     // Initial composition of the solid phase [mole fractions]
 
     double T0_gas_;                  // Initial temperature of the gas phase [K]
     double P0_gas_;                  // Initial pressure of the gas phase [Pa]
@@ -97,12 +99,20 @@ class BaseSolver
     std::vector<double> omega0_gas_; // Initial composition of the gas phase [mass fractions]
     std::vector<double> x0_gas_;     // Initial composition of the gas phase [mole fractions]
 
-    double final_time_; // Final time of the simulation [s]
+    double final_time_;      // Final time of the simulation [s]
+    double mass0_tot_solid_; // Initial mass of the solid phase [kg]
+    double mass0_tot_gas_;   // Initial mass of the gas phase [kg]
+    double mass_tot_solid_;  // Current mass of the solid phase [kg]
+    double mass_tot_gas_;    // Current mass of the gas phase [kg]
 
     unsigned int NGS_; // Number of species in the gas phase [-]
     unsigned int NSS_; // Number of species in the solid phase [-]
     unsigned int NC_;  // Number of species in the system [-]
     unsigned int NE_;  // Number of equations [-]
+
+    unsigned int iteration_;          // Iteration counter [-]
+    unsigned int counter_file_video_; // Iteration counter for writing on video [-]
+    unsigned int counter_file_ASCII_; // Iteration counter for writing on ASCII file [-]
 
     std::vector<double> y0_; // vector cibntaining the initial values for all the variables
     std::vector<double> yf_; // vector containing the final values for all the variables

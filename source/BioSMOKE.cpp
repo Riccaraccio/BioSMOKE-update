@@ -49,6 +49,8 @@
 #include "grammar/Grammar_TGA_Biomass.h"
 #include "grammar/Grammar_TotalSimulation_Biomass.h"
 
+#include "TGAnalysis.h"
+
 int main(int argc, char **argv)
 {
     OpenSMOKE::OpenSMOKE_logo("BioSMOKEpp", "");
@@ -159,6 +161,7 @@ int main(int argc, char **argv)
 
     std::string analysis_type;
     std::vector<std::string> output_species;
+    BioSMOKE::Analysis_Type type;
 
     // TGA Analysis
     double heating_rate, final_time;
@@ -189,6 +192,7 @@ int main(int argc, char **argv)
             // {
             //     output_species_ = kineticsSolidMapXML->NamesOfSpecies();
             // }
+            type = BioSMOKE::THERMOGRAVIMETRIC_ANALYSIS;
         }
         else if (analysis_type == "Total_Analysis")
         {
@@ -202,6 +206,8 @@ int main(int argc, char **argv)
             BioSMOKE::Get_TotalSimulation_analysisFromDictionary(
                 dictionaries(name_of_solid_status_subdictionary), energy_balance, volume_loss, final_time, porosity,
                 number_of_layers, initial_radius, Da_number, ext_heat_transf_coeff, lambda_solid, output_species);
+
+            type = BioSMOKE::ONE_DIMENSIONAL_SPHERICAL_PARTICLE;
         }
         else
         {
@@ -226,7 +232,7 @@ int main(int argc, char **argv)
     }
 
     double T_gas, P_Pa_gas;
-    OpenSMOKE::OpenSMOKEVectorDouble omega;
+    OpenSMOKE::OpenSMOKEVectorDouble omega0_gas;
     // Read initial conditions
     {
         std::string name_of_gas_status_subdictionary;
@@ -236,7 +242,7 @@ int main(int argc, char **argv)
         }
 
         GetGasStatusFromDictionary(dictionaries(name_of_gas_status_subdictionary), *thermodynamicsMapXML, T_gas,
-                                   P_Pa_gas, omega);
+                                   P_Pa_gas, omega0_gas);
 
         // TODO
         // if (output_species_[0] == "all")
@@ -246,7 +252,7 @@ int main(int argc, char **argv)
     }
 
     double T_solid, P_Pa_solid, rho_solid;
-    OpenSMOKE::OpenSMOKEVectorDouble omega_solid;
+    OpenSMOKE::OpenSMOKEVectorDouble omega0_solid;
     {
         std::string name_of_solid_status_subdictionary;
         if (dictionaries(main_dictionary_name_).CheckOption("@InitialSolidStatus") == true)
@@ -256,12 +262,37 @@ int main(int argc, char **argv)
         }
 
         BioSMOKE::GetSolidStatusFromDictionary(dictionaries(name_of_solid_status_subdictionary),
-                                               *thermodynamicSolidMapXML, T_solid, P_Pa_solid, rho_solid, omega_solid);
+                                               *thermodynamicSolidMapXML, T_solid, P_Pa_solid, rho_solid, omega0_solid);
 
         if (is_temperature_profile == true)
         {
             T_solid = temperature_profile->Get(0.);
         }
+    }
+
+    std::shared_ptr<OpenSMOKE::ODE_Parameters> ode_parameters; // TODO
+
+    // Convert OpenSMOKE::OpenSMOKEVectorDouble to std::vector<double>
+    std::vector<double> omega0gas(omega0_gas.GetHandle(), omega0_gas.GetHandle() + omega0_gas.Size());
+    std::vector<double> omega0solid(omega0_solid.GetHandle(), omega0_solid.GetHandle() + omega0_solid.Size());
+
+    if (type == BioSMOKE::THERMOGRAVIMETRIC_ANALYSIS)
+    {
+        // clang-format off
+        BioSMOKE::TGAnalysis tga_analysis(  *thermodynamicsMapXML,
+                                            *kineticsMapXML,
+                                            *transportMapXML,
+                                            *thermodynamicSolidMapXML,
+                                            *kineticsSolidMapXML,
+                                            *ode_parameters,
+                                            T_solid,
+                                            P_Pa_solid,
+                                            rho_solid,
+                                            omega0gas,
+                                            omega0solid,
+                                            heating_rate);
+        tga_analysis.Solve(0., final_time);
+        // clang-format on
     }
 
     return 0;
